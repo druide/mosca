@@ -19,6 +19,8 @@ describe("mosca.persistence.LevelUp", function() {
     }
   };
 
+  var levelup;
+
   abstract(LevelUp, function(cb) {
     var that = this;
     opts.path = path.join(tmpdir, 'level_' + Date.now());
@@ -26,12 +28,13 @@ describe("mosca.persistence.LevelUp", function() {
   });
 
   afterEach(function deleteLevel(done) {
+    if (levelup) levelup.close();
     rimraf(opts.path, done);
   });
 
   describe("two instances", function() {
     it("support restoring from disk", function(done) {
-      var client = { 
+      var client = {
         id: "my client id - 42",
         clean: false,
         logger: pino({ level: "error" }),
@@ -53,7 +56,7 @@ describe("mosca.persistence.LevelUp", function() {
 
       this.instance.storeSubscriptions(client, function() {
         that.instance.close(function() {
-          new LevelUp(opts, function(err, newdb) {
+          levelup = new LevelUp(opts, function(err, newdb) {
             newdb.storeOfflinePacket(packet, function() {
               newdb.streamOfflinePackets(client, function(err, p) {
                 expect(p).to.eql(packet);
